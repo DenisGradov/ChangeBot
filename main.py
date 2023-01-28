@@ -60,12 +60,6 @@ def ms(message):
         cursor = connect.cursor()
         cursor.execute('INSERT INTO users (username, tg_id, referals, referalsCol, referalsBal, myReferal,trades,tradesSum, ban) VALUES (?, ?, ?, ?,?,?,?,?,?)', (message.from_user.username, message.chat.id, '[]', 0, 0, 0,0,0,0))
         connect.commit() 
-        
-        
-        text= text.replace("_", "\\_")
-        text= text.replace("*", "\\*")
-        text= text.replace("[", "\\[")
-        text= text.replace("`", "\\`")
         ban=0
         if notif_about_new_user:
             klava=types.InlineKeyboardMarkup()
@@ -111,8 +105,7 @@ def callback_inline(call):
     if ban==1:
         pass
     else:
-        
-        x = bot.get_chat_member(mast_sub_Id[1], message.chat.id)
+        x = bot.get_chat_member(mast_sub_Id[1], call.from_user.id)
         if ((x.status == "member" or x.status == "creator" or x.status == "administrator")or(mast_sub==False))or(mast_sub==False): 
             if call.data=='check':
                 menu(message)
@@ -488,10 +481,32 @@ def callback_inline(call):
                                 cursor.execute('UPDATE users SET tradesSum = (?) WHERE tg_id=(?)', (tradesSum,x2[1] )) 
                                 connect.commit()
 
-                                bot.send_message(logs,'% выплачен')
+                                bot.send_message(logs,'% выплачен (с рефералом)')
                             else:  
-                                bot.answer_callback_query(call.id, show_alert=True, text=user_havent_ref)
-                                print(id)
+                                cursor.execute(f'SELECT referalsBal FROM users WHERE tg_id =?',(id,))
+                                refBal=(cursor.fetchone())
+                                cursor.execute(f'SELECT trades FROM users WHERE tg_id =?',(x2[1],))
+                                trades=(cursor.fetchone())[0]
+                                cursor.execute(f'SELECT tradesSum FROM users WHERE tg_id =?',(x2[1],))
+                                tradesSum=(cursor.fetchone())[0]
+                                cursor.execute(f'SELECT username FROM users WHERE tg_id =?',(x2[1],))
+                                username=(cursor.fetchone())[0]
+                                connect.commit()
+                                pros=(int(refBonys))/100
+                                summa=int(x2[2])*pros
+                                summa=math.ceil(summa)
+                                print(pros)
+                                bot.send_message(x2[1],trade_conf,parse_mode='Markdown')
+                                tradesSum=int(tradesSum)+int(x2[2])
+                                trades=trades+1
+                                connect  = sqlite3.connect('db.db')
+                                cursor = connect.cursor()
+                                connect.commit()
+                                cursor.execute('UPDATE users SET trades = (?) WHERE tg_id=(?)', (trades,x2[1] )) 
+                                connect.commit()
+                                cursor.execute('UPDATE users SET tradesSum = (?) WHERE tg_id=(?)', (tradesSum,x2[1] )) 
+                                connect.commit()
+                                bot.send_message(logs,'Добавлено в статистику (без реферала)')
 
                         else:  
                             bot.answer_callback_query(call.id, show_alert=True, text=ref_system_of_ms)
